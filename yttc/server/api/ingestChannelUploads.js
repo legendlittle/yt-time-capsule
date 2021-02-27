@@ -1,10 +1,11 @@
 'use strict';
+
 const video = require('../data/Video')
 
-const {google} = require('googleapis');
+const { google } = require('googleapis');
 const youtube = google.youtube({
-    version: 'v3',
-    auth: process.env.YOUTUBE_API_KEY
+  version: 'v3',
+  auth: process.env.YOUTUBE_API_KEY
 });
 
 /**
@@ -24,15 +25,17 @@ const MAX_NUMBER_OF_VIDEOS_TO_INGEST = 2000;
  * ingestion was more than @constant DAYS_BETWEEN_REFRESH days ago.
  */
 module.exports.ingest = async (event, context, callback) => {
+  const { videosTable } = require('../dynamo/videosTable')
+
   const requestBody = JSON.parse(event.body);
   const channelId = requestBody.channelId;
-  
+
   // TODO: don't ingest if we ingested within DAYS_BETWEEN_REFRESH ago
 
   var playlistId;
   try {
     playlistId = await getUploadsPlaylistFromChannel(channelId);
-  } catch(e) {
+  } catch (e) {
     const response = {
       statusCode: 500,
       body: "Error: " + e,
@@ -43,8 +46,8 @@ module.exports.ingest = async (event, context, callback) => {
 
   var videoItems;
   try {
-     videoItems = await getVideosFromPlaylist(playlistId);
-  } catch(e) {
+    videoItems = await getVideosFromPlaylist(playlistId);
+  } catch (e) {
     const response = {
       statusCode: 500,
       body: "Error: " + e,
@@ -53,15 +56,17 @@ module.exports.ingest = async (event, context, callback) => {
     return;
   }
 
+
   // TODO: for each video in uploads playlist, add it to the db
-  console.log(videoItems[1].toString());
+  videosTable(videoItems);
+
 
 
   const response = {
     statusCode: 200,
     body: JSON.stringify(playlistId) + '\n',
   };
-  callback(null,response);
+  callback(null, response);
 };
 
 /**
@@ -72,8 +77,8 @@ module.exports.ingest = async (event, context, callback) => {
 async function getUploadsPlaylistFromChannel(channelId) {
   console.log("Calling youtube to get playlistId for channelId " + channelId);
   const res = await youtube.channels.list({
-      part: 'contentDetails',
-      id: channelId,
+    part: 'contentDetails',
+    id: channelId,
   });
 
   if (res.status !== 200) {
@@ -115,10 +120,10 @@ async function getVideosFromPlaylist(playlistId) {
     const response = await youtube.playlistItems.list(requestOptions);
     if (response.data.pageInfo.totalResults > MAX_NUMBER_OF_VIDEOS_TO_INGEST) {
       throw new Error("Too many videos to ingest. " +
-                      `Found ${response.data.pageInfo.totalResults} results ` +
-                      `in playlistId ${playlistId}` );
+        `Found ${response.data.pageInfo.totalResults} results ` +
+        `in playlistId ${playlistId}`);
     }
-    
+
     for (var item of response.data.items) {
       videoUploads.push(new video.VideoBuilder()
         .withVideoId(item.contentDetails.videoId)

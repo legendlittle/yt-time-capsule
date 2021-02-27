@@ -64,7 +64,7 @@ class VideoItem {
      * @return {String} The thumbnail URL. 
      */
     getThumbnailUrl(thumbnailQuality = VideoThumbnailQualityType.STANDARD) {
-        return "https://i.ytimg.com/vi/" + this.videoId + "/" + thumbnailQuality.urlSuffix;
+        return `https://i.ytimg.com/vi/${this.videoId}/${thumbnailQuality.urlSuffix}`;
     }
 
     toString() {
